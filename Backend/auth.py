@@ -7,11 +7,14 @@ ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
+
 def hash_password(password: str):
     return pwd_context.hash(password)
 
+
 def verify_password(password: str, hashed: str):
     return pwd_context.verify(password, hashed)
+
 
 def create_token(email: str):
     payload = {
@@ -19,6 +22,7 @@ def create_token(email: str):
         "exp": datetime.utcnow() + timedelta(hours=1)
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def decode_token(token: str):
     try:

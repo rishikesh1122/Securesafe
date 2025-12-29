@@ -1,30 +1,40 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
-from fastapi.responses import FileResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi import FastAPI, UploadFile, File as FileParam, Depends, HTTPException
 from sqlalchemy.orm import Session
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import FileResponse
 
 from database import SessionLocal, engine
-from models import Base, User, File as FileModel
+from models import User, File as FileModel
 from schemas import UserCreate
 from auth import hash_password, verify_password, create_token, decode_token
 from encryption import encrypt_data, decrypt_data
 
 import os
 
+# Create tables ONCE
+from database import Base
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SecureSafe")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # React URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 UPLOAD_DIR = "uploads"
 ENCRYPTED_DIR = "encrypted"
-
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(ENCRYPTED_DIR, exist_ok=True)
 
 security = HTTPBearer()
 
-# ---------- DB Dependency ----------
+# DB dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -32,7 +42,7 @@ def get_db():
     finally:
         db.close()
 
-# ---------- Auth Dependency ----------
+# Auth dependency
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -47,85 +57,122 @@ def get_current_user(
 
     return user
 
+
 @app.get("/")
 def root():
     return {"status": "SecureSafe backend running"}
 
-# ---------- REGISTER ----------
+# ---------------- REGISTER ----------------
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user.email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="User already exists")
+    if db.query(User).filter(User.email == user.email).first():
+        raise HTTPException(status_code=400, detail="User exists")
 
     new_user = User(
         email=user.email,
-        password=hash_password(user.password)
+        hashed_password=hash_password(user.password)
     )
+
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
 
-    return {"message": "User registered successfully"}
+    return {"message": "User registered"}
 
-# ---------- LOGIN ----------
+# ---------------- LOGIN ----------------
 @app.post("/login")
 def login(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    if not verify_password(user.password, db_user.password):
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_token(db_user.email)
     return {"access_token": token, "token_type": "bearer"}
 
-# ---------- UPLOAD ----------
+# ---------------- UPLOAD ----------------
 @app.post("/upload")
 async def upload_file(
-    file: UploadFile = File(...),
-    user: User = Depends(get_current_user),
+    file: UploadFile = FileParam(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    data = await file.read()
-    encrypted = encrypt_data(data)
+    MAX_FILE_SIZE = 50 * 1024 * 1024  # 5 MB
 
-    path = os.path.join(ENCRYPTED_DIR, file.filename + ".enc")
-    with open(path, "wb") as f:
-        f.write(encrypted)
+    contents = await file.read()
+
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 50 MB)")
+
+    encrypted_data = encrypt_data(contents)
+
+    encrypted_path = os.path.join(ENCRYPTED_DIR, file.filename + ".enc")
+
+    with open(encrypted_path, "wb") as f:
+        f.write(encrypted_data)
 
     file_record = FileModel(
         filename=file.filename,
-        owner_id=user.id
+        stored_path=encrypted_path,
+        owner_email=current_user.email
     )
+
     db.add(file_record)
     db.commit()
 
-    return {"message": "File uploaded securely"}
+    return {
+        "message": "File uploaded successfully",
+        "filename": file.filename
+    }
 
-# ---------- DOWNLOAD ----------
+
+
+# ---------------- DOWNLOAD ----------------
 @app.get("/download/{filename}")
 def download_file(
+    filename: str,
+    user=Depends(get_current_user)
+):
+    path = os.path.join(ENCRYPTED_DIR, filename + ".enc")
+
+    if not os.path.exists(path):
+        raise HTTPException(404, "File not found")
+
+    decrypted = decrypt_data(open(path, "rb").read())
+
+    output = os.path.join(UPLOAD_DIR, filename)
+    with open(output, "wb") as f:
+        f.write(decrypted)
+
+    return FileResponse(output, filename=filename)
+@app.get("/files")
+def list_files(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    files = db.query(FileModel).filter(FileModel.owner_email == current_user.email).all()
+    return files
+
+@app.delete("/delete/{filename}")
+def delete_file(
     filename: str,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    file_record = db.query(FileModel).filter(
+    file = db.query(FileModel).filter(
         FileModel.filename == filename,
-        FileModel.owner_id == user.id
+        FileModel.owner_email == user.email
     ).first()
 
-    if not file_record:
+    if not file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    encrypted_path = os.path.join(ENCRYPTED_DIR, filename + ".enc")
-    with open(encrypted_path, "rb") as f:
-        encrypted = f.read()
+    path = f"encrypted/{filename}.enc"
+    if os.path.exists(path):
+        os.remove(path)
 
-    decrypted = decrypt_data(encrypted)
-    decrypted_path = os.path.join(UPLOAD_DIR, filename)
+    db.delete(file)
+    db.commit()
 
-    with open(decrypted_path, "wb") as f:
-        f.write(decrypted)
+    return {"message": "File deleted successfully"}
 
-    return FileResponse(decrypted_path, filename=filename)

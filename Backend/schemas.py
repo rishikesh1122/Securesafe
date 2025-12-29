@@ -1,18 +1,10 @@
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
 
-class UserOut(BaseModel):
-    email: EmailStr
-
-    class Config:
-        from_attributes = True
-
-
-class FileOut(BaseModel):
+class FileResponse(BaseModel):
     filename: str
-
-    class Config:
-        from_attributes = True
+    uploaded_at: datetime
