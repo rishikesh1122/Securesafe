@@ -18,3 +18,15 @@ class File(Base):
     stored_path = Column(String)
     owner_email = Column(String)
     uploaded_at = Column(DateTime, default=datetime.utcnow)
+    notes = Column(String, default="")
+    folder = Column(String, default="")
+    deleted_at = Column(DateTime, nullable=True)
+    size = Column(Integer, default=0)
+
+class Folder(Base):
+    __tablename__ = "folders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    owner_email = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -8,7 +8,18 @@ import { Mail, Lock, UserPlus } from "lucide-react";
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -75,7 +86,8 @@ export default function Register() {
     boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
     padding: "2.25rem",
     borderRadius: "18px",
-    width: "420px",
+    width: "100%",
+    maxWidth: "420px",
     color: "#e5e7eb",
   };
 
@@ -208,6 +220,7 @@ export default function Register() {
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleRegister(e)}
             required
           />
         </div>
@@ -222,6 +235,7 @@ export default function Register() {
             placeholder="Create a strong password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleRegister(e)}
             required
           />
         </div>
@@ -238,7 +252,24 @@ export default function Register() {
         </button>
 
         <p style={{ marginTop: "1.25rem", textAlign: "center", fontSize: "0.9rem", color: "#cbd5e1" }}>
-          Already have an account? <Link to="/login" style={{ color: "#60a5fa", fontWeight: 600 }}>Log in</Link>
+          Already have an account? {isMobile ? (
+            <button
+              onClick={() => navigate('/login')}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#60a5fa",
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: 0,
+                fontSize: "inherit",
+              }}
+            >
+              Log in
+            </button>
+          ) : (
+            <Link to="/login" style={{ color: "#60a5fa", fontWeight: 600 }}>Log in</Link>
+          )}
         </p>
       </motion.div>
     </div>

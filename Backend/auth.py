@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 from jose import jwt, JWTError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 SECRET_KEY = "super-secret-key"
 ALGORITHM = "HS256"
@@ -19,7 +19,7 @@ def verify_password(password: str, hashed: str):
 def create_token(email: str):
     payload = {
         "sub": email,
-        "exp": datetime.utcnow() + timedelta(hours=1)
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1)
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
