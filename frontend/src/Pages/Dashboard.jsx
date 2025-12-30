@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { ShieldCheck, Upload, LogOut, CloudDownload, Trash2, FileText, RefreshCw, Settings, Activity, LifeBuoy, Eye, X, ArrowUp, ArrowDown, Search, Folder, FolderPlus, FolderOpen, Home, RotateCcw, Trash, Zap, Lock, FolderTree, FileSearch, Mail, HelpCircle, MessageCircle } from "lucide-react";
+import { ShieldCheck, Upload, LogOut, CloudDownload, Trash2, FileText, RefreshCw, Settings, Activity, LifeBuoy, Eye, X, ArrowUp, ArrowDown, Search, Folder, FolderPlus, FolderOpen, Home, RotateCcw, Trash, Zap, Lock, FolderTree, FileSearch, Mail, HelpCircle, MessageCircle, FileImage, FileVideo, FileAudio, File, FileCode, FileSpreadsheet, Archive } from "lucide-react";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -77,6 +77,45 @@ function Dashboard() {
     e.currentTarget.style.transform = "translateY(1px) scale(0.99)";
   };
   const handleMouseUp = (e, solid = false) => setHoverState(e.currentTarget, true, solid);
+
+  // Get file icon based on extension
+  const getFileIcon = (filename, size = 16, color = "#a5b4fc") => {
+    const ext = filename.split('.').pop().toLowerCase();
+    
+    // Remove .enc extension if present
+    const actualExt = ext === 'enc' ? filename.split('.').slice(-2, -1)[0].toLowerCase() : ext;
+    
+    // Images
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'ico'].includes(actualExt)) {
+      return <FileImage size={size} color={color} />;
+    }
+    // Videos
+    if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm', 'm4v', '3gp'].includes(actualExt)) {
+      return <FileVideo size={size} color={color} />;
+    }
+    // Audio
+    if (['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a', 'wma'].includes(actualExt)) {
+      return <FileAudio size={size} color={color} />;
+    }
+    // PDF and Documents
+    if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(actualExt)) {
+      return <FileText size={size} color={color} />;
+    }
+    // Spreadsheets
+    if (['xls', 'xlsx', 'csv', 'ods'].includes(actualExt)) {
+      return <FileSpreadsheet size={size} color={color} />;
+    }
+    // Code files
+    if (['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'html', 'css', 'json', 'xml', 'yml', 'yaml', 'sql', 'sh', 'bat'].includes(actualExt)) {
+      return <FileCode size={size} color={color} />;
+    }
+    // Archives
+    if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz'].includes(actualExt)) {
+      return <Archive size={size} color={color} />;
+    }
+    // Default
+    return <File size={size} color={color} />;
+  };
 
   const handleTiltMove = (e, setTilt) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1487,7 +1526,12 @@ function Dashboard() {
                     <tbody>
                       {filteredFiles.map((file) => (
                         <tr key={file.id}>
-                          <td style={tdStyle}>{file.filename}</td>
+                          <td style={tdStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {getFileIcon(file.filename, 16, "#a5b4fc")}
+                              <span>{file.filename}</span>
+                            </div>
+                          </td>
                           <td style={tdStyle}>
                             {editingNoteId === file.id ? (
                               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -1613,7 +1657,7 @@ function Dashboard() {
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                          <FileText size={16} color="#a5b4fc" />
+                          {getFileIcon(file.filename, 16, "#a5b4fc")}
                           <div style={{ color: "#e5e7eb", fontWeight: 600, flex: 1, wordBreak: "break-word" }}>
                             {file.filename}
                           </div>
@@ -2337,14 +2381,21 @@ function Dashboard() {
                         alignItems: "center",
                         gap: "0.75rem",
                         transition: "all 0.2s ease",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => {
+                        setShowUploads(false);
+                        handlePreview(file.filename);
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = "rgba(255,255,255,0.06)";
                         e.currentTarget.style.borderColor = "rgba(124,58,237,0.4)";
+                        e.currentTarget.style.transform = "translateY(-2px)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "rgba(255,255,255,0.03)";
                         e.currentTarget.style.borderColor = "rgba(148,163,184,0.2)";
+                        e.currentTarget.style.transform = "translateY(0)";
                       }}
                     >
                       <div style={{
@@ -2357,7 +2408,7 @@ function Dashboard() {
                         justifyContent: "center",
                         border: "1px solid rgba(124,58,237,0.3)",
                       }}>
-                        <FileText size={20} color="#a5b4fc" />
+                        {getFileIcon(file.filename, 20, "#a5b4fc")}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ color: "#e5e7eb", fontWeight: 500, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -2479,7 +2530,7 @@ function Dashboard() {
                       justifyContent: "center",
                       border: "1px solid rgba(124,58,237,0.3)",
                     }}>
-                      <FileText size={16} color="#a5b4fc" />
+                      {getFileIcon(file.filename, 16, "#a5b4fc")}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ color: "#e5e7eb", fontWeight: 500, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

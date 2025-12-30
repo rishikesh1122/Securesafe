@@ -272,7 +272,7 @@ const features = [
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}>
-            SecureSafe Cloud
+            SecureSafe
           </h1>
           <p style={{
             fontSize: "clamp(0.95rem, 2.5vw, 1.15rem)",
@@ -466,7 +466,7 @@ const features = [
                 <div>
                   <div style={pillStyle}>
                     <ShieldCheck size={16} />
-                    SecureSafe Cloud
+                    SecureSafe
                   </div>
                   <h2 style={{ margin: "0.35rem 0 0", fontSize: "1.4rem", color: "#e5e7eb" }}>
                     Welcome back
