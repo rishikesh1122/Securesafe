@@ -1,0 +1,27 @@
+/* Basic global styles after removing Tailwind */
+html, body, #root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  color: #111827;
+  background: #f8fafc; /* light background */
+}
+
+/* Keep auth inputs dark even when browser autofill applies its own styling */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  background-color: transparent !important;
+  -webkit-text-fill-color: #e5e7eb !important;
+  caret-color: #a5b4fc !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(17,24,39,0.92) inset !important;
+  box-shadow: 0 0 0 1000px rgba(17,24,39,0.92) inset !important;
+  transition: background-color 0s ease 0s !important;
+}
+
+.auth-input {
+  background: transparent;
+}
